@@ -1,76 +1,102 @@
-from fastapi import Body, FastAPI
+"""FastAPI application for managing books."""
+
+from typing import List, Optional
+
+from exceptions import RecordNotFound
+from models import Book, BookCreate, BookUpdate, ErrorResponse
+from rescue import setup_exception_handlers
+from fastapi import FastAPI, status as http_status
+from fastapi.responses import Response
 
 app = FastAPI()
 
+# Common error responses for documentation
+ERROR_RESPONSES = {404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}}
+VALIDATION_RESPONSES = {422: {"model": ErrorResponse}}
+
+# Setup Rails-style exception handlers
+setup_exception_handlers(app)
+
 
 BOOKS = [
-    {'title': 'Title One', 'author': 'Author One', 'category': 'science'},
-    {'title': 'Title Two', 'author': 'Author Two', 'category': 'science'},
-    {'title': 'Title Three', 'author': 'Author Three', 'category': 'history'},
-    {'title': 'Title Four', 'author': 'Author Four', 'category': 'math'},
-    {'title': 'Title Five', 'author': 'Author Five', 'category': 'math'},
-    {'title': 'Title Six', 'author': 'Author Two', 'category': 'math'}
+    {"id": 1, "title": "Title One", "author": "Author One", "category": "science"},
+    {"id": 2, "title": "Title Two", "author": "Author Two", "category": "science"},
+    {"id": 3, "title": "Title Three", "author": "Author Three", "category": "history"},
+    {"id": 4, "title": "Title Four", "author": "Author Four", "category": "math"},
+    {"id": 5, "title": "Title Five", "author": "Author Five", "category": "math"},
+    {"id": 6, "title": "Title Six", "author": "Author Two", "category": "math"},
 ]
 
 
-@app.get("/books")
-async def read_all_books():
-    return BOOKS
+@app.get("/books", response_model=List[Book], responses=ERROR_RESPONSES)
+async def index(category: Optional[str] = None, author: Optional[str] = None):
+    """Return all books, optionally filtered by category and/or author."""
+    filtered_books = BOOKS
+
+    if category:
+        filtered_books = [
+            book
+            for book in filtered_books
+            if book.get("category", "").casefold() == category.casefold()
+        ]
+
+    if author:
+        filtered_books = [
+            book
+            for book in filtered_books
+            if book.get("author", "").casefold() == author.casefold()
+        ]
+
+    return filtered_books
 
 
-@app.get("/books/{book_title}")
-async def read_book(book_title: str):
+@app.get("/books/{book_id}", response_model=Book, responses=ERROR_RESPONSES)
+async def show(book_id: int):
+    """Return a specific book by ID."""
     for book in BOOKS:
-        if book.get('title').casefold() == book_title.casefold():
+        if book.get("id") == book_id:
             return book
+    raise RecordNotFound("Book", book_id)
 
 
-@app.get("/books/")
-async def read_category_by_query(category: str):
-    books_to_return = []
-    for book in BOOKS:
-        if book.get('category').casefold() == category.casefold():
-            books_to_return.append(book)
-    return books_to_return
+@app.post(
+    "/books", response_model=Book, status_code=201, responses=VALIDATION_RESPONSES
+)
+async def create(new_book: BookCreate):
+    """Create a new book."""
+    # Generate new ID
+    new_id = max((book["id"] for book in BOOKS), default=0) + 1
+    book_dict = new_book.model_dump()
+    book_dict["id"] = new_id
+    BOOKS.append(book_dict)
+    return book_dict
 
 
-# Get all books from a specific author using path or query parameters
-@app.get("/books/byauthor/")
-async def read_books_by_author_path(author: str):
-    books_to_return = []
-    for book in BOOKS:
-        if book.get('author').casefold() == author.casefold():
-            books_to_return.append(book)
-
-    return books_to_return
-
-
-@app.get("/books/{book_author}/")
-async def read_author_category_by_query(book_author: str, category: str):
-    books_to_return = []
-    for book in BOOKS:
-        if book.get('author').casefold() == book_author.casefold() and \
-                book.get('category').casefold() == category.casefold():
-            books_to_return.append(book)
-
-    return books_to_return
+@app.put("/books/{book_id}", response_model=Book, responses=ERROR_RESPONSES)
+@app.patch("/books/{book_id}", response_model=Book, responses=ERROR_RESPONSES)
+async def update(book_id: int, updates: BookUpdate):
+    """Update an existing book (supports both PUT and PATCH)."""
+    for i, book in enumerate(BOOKS):
+        if book.get("id") == book_id:
+            # Update only provided fields
+            update_data = updates.model_dump(exclude_unset=True)
+            for key, value in update_data.items():
+                if key != "id":  # Don't allow ID changes
+                    book[key] = value
+            BOOKS[i] = book
+            return book
+    raise RecordNotFound("Book", book_id)
 
 
-@app.post("/books/create_book")
-async def create_book(new_book=Body()):
-    BOOKS.append(new_book)
-
-
-@app.put("/books/update_book")
-async def update_book(updated_book=Body()):
-    for i in range(len(BOOKS)):
-        if BOOKS[i].get('title').casefold() == updated_book.get('title').casefold():
-            BOOKS[i] = updated_book
-
-
-@app.delete("/books/delete_book/{book_title}")
-async def delete_book(book_title: str):
-    for i in range(len(BOOKS)):
-        if BOOKS[i].get('title').casefold() == book_title.casefold():
+@app.delete(
+    "/books/{book_id}",
+    status_code=http_status.HTTP_204_NO_CONTENT,
+    responses=ERROR_RESPONSES,
+)
+async def destroy(book_id: int):
+    """Delete a book by ID."""
+    for i, book in enumerate(BOOKS):
+        if book.get("id") == book_id:
             BOOKS.pop(i)
-            break
+            return Response(status_code=http_status.HTTP_204_NO_CONTENT)
+    raise RecordNotFound("Book", book_id)
