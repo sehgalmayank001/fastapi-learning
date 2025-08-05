@@ -1,14 +1,17 @@
 """FastAPI application for managing books."""
 
-from typing import List, Optional
+from typing import List, Optional, Annotated
 
 from exceptions import RecordNotFound
 from models import Book, BookCreate, BookUpdate, ErrorResponse
 from rescue import setup_exception_handlers
-from fastapi import FastAPI, status as http_status
+from fastapi import FastAPI, Path, status as http_status
 from fastapi.responses import Response
 
 app = FastAPI()
+
+# Reusable path parameter with validation - DRY approach
+ValidBookId = Annotated[int, Path(gt=0, description="Book ID must be greater than 0")]
 
 # Common error responses for documentation
 ERROR_RESPONSES = {404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}}
@@ -28,7 +31,12 @@ BOOKS = [
 ]
 
 
-@app.get("/books", response_model=List[Book], responses=ERROR_RESPONSES)
+@app.get(
+    "/books",
+    response_model=List[Book],
+    status_code=http_status.HTTP_200_OK,
+    responses=ERROR_RESPONSES,
+)
 async def index(category: Optional[str] = None, author: Optional[str] = None):
     """Return all books, optionally filtered by category and/or author."""
     filtered_books = BOOKS
@@ -50,8 +58,13 @@ async def index(category: Optional[str] = None, author: Optional[str] = None):
     return filtered_books
 
 
-@app.get("/books/{book_id}", response_model=Book, responses=ERROR_RESPONSES)
-async def show(book_id: int):
+@app.get(
+    "/books/{book_id}",
+    response_model=Book,
+    status_code=http_status.HTTP_200_OK,
+    responses=ERROR_RESPONSES,
+)
+async def show(book_id: ValidBookId):
     """Return a specific book by ID."""
     for book in BOOKS:
         if book.get("id") == book_id:
@@ -60,7 +73,10 @@ async def show(book_id: int):
 
 
 @app.post(
-    "/books", response_model=Book, status_code=201, responses=VALIDATION_RESPONSES
+    "/books",
+    response_model=Book,
+    status_code=http_status.HTTP_201_CREATED,
+    responses=VALIDATION_RESPONSES,
 )
 async def create(new_book: BookCreate):
     """Create a new book."""
@@ -72,9 +88,19 @@ async def create(new_book: BookCreate):
     return book_dict
 
 
-@app.put("/books/{book_id}", response_model=Book, responses=ERROR_RESPONSES)
-@app.patch("/books/{book_id}", response_model=Book, responses=ERROR_RESPONSES)
-async def update(book_id: int, updates: BookUpdate):
+@app.put(
+    "/books/{book_id}",
+    response_model=Book,
+    status_code=http_status.HTTP_200_OK,
+    responses=ERROR_RESPONSES,
+)
+@app.patch(
+    "/books/{book_id}",
+    response_model=Book,
+    status_code=http_status.HTTP_200_OK,
+    responses=ERROR_RESPONSES,
+)
+async def update(book_id: ValidBookId, updates: BookUpdate):
     """Update an existing book (supports both PUT and PATCH)."""
     for i, book in enumerate(BOOKS):
         if book.get("id") == book_id:
@@ -93,7 +119,7 @@ async def update(book_id: int, updates: BookUpdate):
     status_code=http_status.HTTP_204_NO_CONTENT,
     responses=ERROR_RESPONSES,
 )
-async def destroy(book_id: int):
+async def destroy(book_id: ValidBookId):
     """Delete a book by ID."""
     for i, book in enumerate(BOOKS):
         if book.get("id") == book_id:
