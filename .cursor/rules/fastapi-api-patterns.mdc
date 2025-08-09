@@ -1,0 +1,72 @@
+---
+globs: "**/*api*.py,**/routers/*.py,**/main.py"
+description: "FastAPI API design patterns and conventions"
+---
+
+# FastAPI API Design Patterns
+
+## Project 1 Reference Patterns
+
+### Exception Handling (Rails-inspired)
+
+- **Centralized exceptions**: [exceptions/](mdc:Project%201/exceptions/) directory
+- **Base exception**: [api_exception.py](mdc:Project%201/exceptions/api_exception.py)
+- **Specific exceptions**: `RecordNotFound`, `RecordInvalid`, `NotAuthorized`
+- **Global handlers**: [rescue.py](mdc:Project%201/rescue.py) - Rails-style exception rescue
+
+### Model Organization
+
+- **Separate concerns**: [models/](mdc:Project%201/models/) directory
+- **Base models**: [book_base.py](mdc:Project%201/models/book_base.py)
+- **Request models**: [book_create.py](mdc:Project%201/models/book_create.py), [book_update.py](mdc:Project%201/models/book_update.py)
+- **Response models**: [book.py](mdc:Project%201/models/book.py)
+- **Error responses**: [error_response.py](mdc:Project%201/models/error_response.py)
+
+## API Design Conventions
+
+### Path Parameters
+
+- **Validation**: Use Annotated types for reusable validation
+  ```python
+  ValidBookId = Annotated[int, Path(gt=0, description="ID must be greater than 0")]
+  ```
+- **DRY principle**: Define once, reuse across endpoints
+
+### Response Documentation
+
+- **Common responses**: Define reusable response dictionaries
+  ```python
+  ERROR_RESPONSES = {404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}}
+  ```
+- **Consistent structure**: Use same error response model across endpoints
+
+### CRUD Operations
+
+- **Follow REST conventions**: GET, POST, PUT, DELETE
+- **Consistent naming**: `create_`, `read_`, `update_`, `delete_` prefixes
+- **Status codes**: Use appropriate HTTP status codes from `fastapi.status`
+
+## Exception Handling Pattern
+
+### Custom Exception Classes
+
+```python
+class APIException(Exception):
+    def __init__(self, message: str, status_code: int = 500):
+        self.message = message
+        self.status_code = status_code
+```
+
+### Global Exception Handlers
+
+- Register handlers in main application
+- Return consistent error response format
+- Log errors appropriately
+
+### Error Response Format
+
+```python
+class ErrorResponse(BaseModel):
+    message: str
+    status_code: int
+```

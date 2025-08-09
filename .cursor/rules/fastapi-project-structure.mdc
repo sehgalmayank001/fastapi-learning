@@ -1,0 +1,46 @@
+---
+alwaysApply: true
+description: "FastAPI project structure and organization patterns"
+---
+
+# FastAPI Project Structure Guide
+
+## Project Organization
+
+### Main Application Structure
+
+- **Main app file**: [main.py](mdc:Project%203/TodoApp/main.py) - FastAPI application entry point
+- **Configuration**: [config/](mdc:Project%203/TodoApp/config/) - All configuration files
+  - [database.py](mdc:Project%203/TodoApp/config/database.py) - Database connection logic
+  - [database.yml](mdc:Project%203/TodoApp/config/database.yml) - Environment-specific DB config
+  - [settings.py](mdc:Project%203/TodoApp/config/settings.py) - Centralized app settings using Pydantic
+  - [alembic.ini](mdc:Project%203/TodoApp/config/alembic.ini) - Alembic migration config
+
+### Models Organization (SRP Pattern)
+
+- **Models package**: [models/](mdc:Project%203/TodoApp/models/) - Individual model files
+  - [**init**.py](mdc:Project%203/TodoApp/models/__init__.py) - Package exports
+  - [user.py](mdc:Project%203/TodoApp/models/user.py) - User model
+  - [todo.py](mdc:Project%203/TodoApp/models/todo.py) - Todo model
+- **Pattern**: One model per file, following Single Responsibility Principle
+
+### Database Migrations
+
+- **Migration folder**: [db/](mdc:Project%203/TodoApp/db/) - Alembic migrations (renamed from alembic/)
+  - [env.py](mdc:Project%203/TodoApp/db/env.py) - Alembic environment configuration
+  - [versions/](mdc:Project%203/TodoApp/db/versions/) - Migration files
+- **Migration script**: [migrate.py](mdc:Project%203/TodoApp/migrate.py) - Wrapper for Alembic commands
+
+## Configuration Patterns
+
+### Environment Variables
+
+- Use [.env](mdc:.env) files for local development
+- Reference [env.example](mdc:Project%203/TodoApp/env.example) for required variables
+- Load once in [main.py](mdc:Project%203/TodoApp/main.py) using `load_dotenv()`
+
+### Database Configuration
+
+- Rails-style [database.yml](mdc:Project%203/TodoApp/config/database.yml) with Jinja templating
+- Centralized through [settings.py](mdc:Project%203/TodoApp/config/settings.py) using Pydantic BaseSettings
+- Support for both individual components and full DATABASE_URL

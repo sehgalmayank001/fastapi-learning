@@ -1,0 +1,73 @@
+---
+globs: "**/config/database.py,**/models/*.py,**/db/**/*.py"
+description: "Database configuration and migration patterns"
+---
+
+# Database Configuration Patterns
+
+## Database Configuration Structure
+
+### Centralized Settings Pattern
+
+- **Primary interface**: [config/settings.py](mdc:Project%203/TodoApp/config/settings.py) using Pydantic BaseSettings
+- **Core logic**: [config/database.py](mdc:Project%203/TodoApp/config/database.py) contains SQLAlchemy setup
+- **SOLID principle**: Settings acts as interface, database.py contains implementation
+
+### Configuration Loading
+
+```python
+# In settings.py - computed fields for dynamic config
+@computed_field
+@property
+def database_url(self) -> str:
+    """Generate database URL from YAML configuration."""
+    db_config = load_database_config()
+    return get_database_url(db_config)
+```
+
+### Database YAML Structure
+
+- Environment-specific sections: `development`, `test`, `production`
+- Jinja templating: `"{{ DB_NAME | default('fallback') }}"`
+- URL precedence: Full `url` field overrides individual components
+
+## SQLAlchemy Patterns
+
+### Model Organization
+
+- **One model per file** in `models/` directory
+- Import Base from settings: `Base = settings.base`
+- Export models in `models/__init__.py`
+
+### Connection Management
+
+- Pool configuration from YAML: `pool_size`, `timeout`
+- Explicit type casting: `int(config.get("pool", 5))`
+- Session factory: `sessionmaker(autocommit=False, autoflush=False)`
+
+## Migration Patterns
+
+### Alembic Setup
+
+- **Renamed folder**: `db/` instead of `alembic/`
+- **Config location**: `config/alembic.ini`
+- **Environment script**: `db/env.py` with automatic model imports
+
+### Migration Best Practices
+
+- **Separate migrations**: One table per migration file
+- **Descriptive names**: "Create users table", "Add index to todos"
+- **Auto-import models**: `import models` in `env.py` for scalability
+
+### Migration Commands
+
+```bash
+# Generate migration
+python migrate.py revision --autogenerate -m "Description"
+
+# Apply migrations
+python migrate.py upgrade head
+
+# Rollback specific
+python migrate.py downgrade <revision_id>
+```

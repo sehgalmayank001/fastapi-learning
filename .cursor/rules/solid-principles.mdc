@@ -1,0 +1,80 @@
+---
+description: "SOLID principles application in FastAPI projects"
+---
+
+# SOLID Principles in FastAPI
+
+## Single Responsibility Principle (SRP)
+
+### Model Organization
+
+- **One model per file**: Each model class in its own file
+- **Violation example**: Single `models.py` file with all models
+- **Correct approach**: `models/user.py`, `models/todo.py`, etc.
+
+### Configuration Separation
+
+- **Database logic**: [config/database.py](mdc:Project%203/TodoApp/config/database.py)
+- **Settings management**: [config/settings.py](mdc:Project%203/TodoApp/config/settings.py)
+- **Environment config**: [config/database.yml](mdc:Project%203/TodoApp/config/database.yml)
+
+## Dependency Inversion Principle
+
+### Settings as Interface
+
+```python
+# settings.py acts as interface
+@property
+def database_engine(self):
+    """Get database engine from database module."""
+    return engine
+
+# database.py contains implementation
+engine = create_database_engine()
+```
+
+### Benefits
+
+- **Loose coupling**: Components depend on abstractions
+- **Testability**: Easy to mock interfaces
+- **Flexibility**: Can swap implementations
+
+## Open/Closed Principle
+
+### Exception Hierarchy
+
+- **Base class**: `APIException` for extension
+- **Specific exceptions**: Inherit and extend behavior
+- **Closed for modification**: Don't change base exception
+- **Open for extension**: Add new exception types
+
+## Best Practices
+
+### Import Management
+
+- **Centralized access**: Import through `settings` object
+- **Avoid direct imports**: Don't import `database.py` directly
+- **Clean interfaces**: `Base = settings.base` pattern
+
+### Configuration Management
+
+- **Single source of truth**: All config through `settings`
+- **Computed properties**: Dynamic configuration loading
+- **Type safety**: Pydantic validation and type hints
+
+## Anti-Patterns to Avoid
+
+### God Objects
+
+- **Don't**: Put everything in single file/class
+- **Do**: Split by responsibility and concern
+
+### Tight Coupling
+
+- **Don't**: Direct imports between modules
+- **Do**: Use dependency injection and interfaces
+
+### Mixed Concerns
+
+- **Don't**: Database logic in API routes
+- **Do**: Separate data access, business logic, and presentation

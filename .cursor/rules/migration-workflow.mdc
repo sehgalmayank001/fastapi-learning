@@ -1,0 +1,106 @@
+---
+description: "Database migration workflow and best practices"
+---
+
+# Database Migration Workflow
+
+## Migration Commands Reference
+
+### Basic Commands
+
+```bash
+# Check current migration status
+python migrate.py current
+
+# Show migration history
+python migrate.py history --verbose
+
+# Generate new migration
+python migrate.py revision --autogenerate -m "Description"
+
+# Apply migrations
+python migrate.py upgrade head
+
+# Rollback migrations
+python migrate.py downgrade <revision_id>
+python migrate.py downgrade -1  # Back one step
+python migrate.py downgrade base  # Back to empty DB
+```
+
+## Migration Best Practices
+
+### Separate Migrations Strategy
+
+- **One table per migration**: Easier to track and rollback
+- **Clear dependencies**: Users table before Todos (foreign key dependency)
+- **Descriptive names**: "Create users table", "Add index to email"
+
+### Migration File Structure
+
+```python
+"""Create users table
+
+Revision ID: 9927cfa5c027
+Revises:
+Create Date: 2025-08-10 02:41:13.735171
+"""
+
+def upgrade() -> None:
+    """Upgrade schema."""
+    # Forward changes
+
+def downgrade() -> None:
+    """Downgrade schema."""
+    # Rollback changes
+```
+
+## Environment Setup
+
+### Database Creation
+
+```bash
+# PostgreSQL
+createdb todosapp_development
+createdb todosapp_test
+createdb todosapp_production
+
+# Drop and recreate for fresh start
+dropdb todosapp_development && createdb todosapp_development
+```
+
+### Migration Environment
+
+- **Auto-import models**: `import models` in [db/env.py](mdc:Project%203/TodoApp/db/env.py)
+- **Dynamic URL**: Uses `settings.database_url` from configuration
+- **Metadata binding**: `target_metadata = settings.base.metadata`
+
+## Troubleshooting
+
+### Common Issues
+
+1. **"Target database is not up to date"**: Run `upgrade head` first
+2. **Empty migrations**: Database already has tables from previous runs
+3. **Import errors**: Check `sys.path` in `env.py` and model imports
+
+### Clean Slate Process
+
+1. Drop database: `dropdb todosapp_development`
+2. Recreate database: `createdb todosapp_development`
+3. Delete migration files in `db/versions/`
+4. Generate fresh migration: `revision --autogenerate`
+5. Apply migration: `upgrade head`
+
+## Rails Comparison
+
+### Similar Concepts
+
+- **Migration files**: Timestamped with up/down methods
+- **Schema tracking**: Version table (`alembic_version` vs `schema_migrations`)
+- **Rollback capability**: Can revert to any previous state
+- **Environment awareness**: Different configs per environment
+
+### Key Differences
+
+- **Auto-generation**: Alembic compares models to DB schema
+- **Template system**: Uses Mako templates for migration files
+- **Connection handling**: More explicit database connection management

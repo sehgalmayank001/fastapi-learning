@@ -1,0 +1,58 @@
+---
+globs: "*.py"
+description: "Python coding standards and conventions for FastAPI projects"
+---
+
+# Python Coding Standards
+
+## String Literals
+
+- **Always use double quotes** for consistency: `"string"` not `'string'`
+- Apply to all strings: variables, docstrings, imports, etc.
+
+## Documentation
+
+- **Module docstrings**: Every Python file must start with a triple-quoted docstring
+  ```python
+  """Module description."""
+  ```
+- **Class docstrings**: All classes need descriptive docstrings
+- **Function docstrings**: Use for non-trivial functions
+
+## Import Organization (PEP 8)
+
+1. **Standard library imports** first
+2. **Third-party imports** second
+3. **Local imports** last
+4. **Separate groups** with blank lines
+
+Example:
+
+```python
+"""Module docstring."""
+
+import sys
+from pathlib import Path
+
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+from .config import settings
+from .models import User
+```
+
+## File Handling
+
+- **Always specify encoding**: `open(file, encoding="utf-8")`
+- Never use `open()` without explicit encoding parameter
+
+## Error Handling
+
+- **No suppression comments**: Avoid `# pylint: disable` or `# noqa`
+- Fix the underlying issue instead of suppressing warnings
+- User preference: "suppress is stupid" - always fix properly
+
+## Type Hints
+
+- Use type hints for function parameters and return values
+- Import from `typing` module when needed: `List`, `Optional`, `Union`
