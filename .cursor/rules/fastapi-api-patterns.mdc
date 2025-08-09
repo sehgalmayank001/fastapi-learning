@@ -5,68 +5,178 @@ description: "FastAPI API design patterns and conventions"
 
 # FastAPI API Design Patterns
 
-## Project 1 Reference Patterns
+## Exception Handling Patterns (Rails-inspired)
 
-### Exception Handling (Rails-inspired)
+### Centralized Exception Structure
 
-- **Centralized exceptions**: [exceptions/](mdc:Project%201/exceptions/) directory
-- **Base exception**: [api_exception.py](mdc:Project%201/exceptions/api_exception.py)
-- **Specific exceptions**: `RecordNotFound`, `RecordInvalid`, `NotAuthorized`
-- **Global handlers**: [rescue.py](mdc:Project%201/rescue.py) - Rails-style exception rescue
+```
+exceptions/
+├── __init__.py
+├── api_exception.py      # Base exception class
+├── record_not_found.py   # 404 errors
+├── record_invalid.py     # 422 validation errors
+├── not_authorized.py     # 401/403 auth errors
+└── parameter_missing.py  # 400 bad request errors
+```
 
-### Model Organization
-
-- **Separate concerns**: [models/](mdc:Project%201/models/) directory
-- **Base models**: [book_base.py](mdc:Project%201/models/book_base.py)
-- **Request models**: [book_create.py](mdc:Project%201/models/book_create.py), [book_update.py](mdc:Project%201/models/book_update.py)
-- **Response models**: [book.py](mdc:Project%201/models/book.py)
-- **Error responses**: [error_response.py](mdc:Project%201/models/error_response.py)
-
-## API Design Conventions
-
-### Path Parameters
-
-- **Validation**: Use Annotated types for reusable validation
-  ```python
-  ValidBookId = Annotated[int, Path(gt=0, description="ID must be greater than 0")]
-  ```
-- **DRY principle**: Define once, reuse across endpoints
-
-### Response Documentation
-
-- **Common responses**: Define reusable response dictionaries
-  ```python
-  ERROR_RESPONSES = {404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}}
-  ```
-- **Consistent structure**: Use same error response model across endpoints
-
-### CRUD Operations
-
-- **Follow REST conventions**: GET, POST, PUT, DELETE
-- **Consistent naming**: `create_`, `read_`, `update_`, `delete_` prefixes
-- **Status codes**: Use appropriate HTTP status codes from `fastapi.status`
-
-## Exception Handling Pattern
-
-### Custom Exception Classes
+### Base Exception Class
 
 ```python
+# exceptions/api_exception.py
 class APIException(Exception):
     def __init__(self, message: str, status_code: int = 500):
         self.message = message
         self.status_code = status_code
+        super().__init__(self.message)
+
+# exceptions/record_not_found.py
+class RecordNotFound(APIException):
+    def __init__(self, message: str = "Record not found"):
+        super().__init__(message, 404)
 ```
 
 ### Global Exception Handlers
 
-- Register handlers in main application
-- Return consistent error response format
-- Log errors appropriately
+```python
+# rescue.py - Rails-style exception rescue
+def setup_exception_handlers(app: FastAPI):
+    @app.exception_handler(RecordNotFound)
+    async def record_not_found_handler(request, exc):
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"message": exc.message}
+        )
 
-### Error Response Format
+# main.py - Setup in application
+app = FastAPI()
+setup_exception_handlers(app)
+```
+
+### Model Organization by Concern
+
+```
+models/
+├── __init__.py
+├── book_base.py          # Base model with common fields
+├── book.py              # Response model with ID
+├── book_create.py       # Request model for creation
+├── book_update.py       # Request model for updates
+└── error_response.py    # Error response model
+```
+
+## API Design Conventions
+
+### Path Parameters with Validation
 
 ```python
+# Reusable validation - DRY principle
+ValidBookId = Annotated[int, Path(gt=0, description="Book ID must be greater than 0")]
+
+@app.get("/books/{book_id}")
+async def get_book(book_id: ValidBookId):
+    # book_id is automatically validated
+    pass
+```
+
+### Response Documentation
+
+```python
+# Common response dictionaries for reuse
+ERROR_RESPONSES = {
+    404: {"model": ErrorResponse},
+    422: {"model": ErrorResponse}
+}
+
+VALIDATION_RESPONSES = {
+    422: {"model": ErrorResponse}
+}
+
+@app.get("/books/{book_id}", responses=ERROR_RESPONSES)
+async def get_book(book_id: ValidBookId) -> Book:
+    pass
+```
+
+### CRUD Operations Pattern
+
+```python
+# Consistent naming and structure
+@app.post("/books", status_code=status.HTTP_201_CREATED)
+async def create_book(book: BookCreate) -> Book:
+    pass
+
+@app.get("/books/{book_id}")
+async def read_book(book_id: ValidBookId) -> Book:
+    pass
+
+@app.put("/books/{book_id}")
+async def update_book(book_id: ValidBookId, book: BookUpdate) -> Book:
+    pass
+
+@app.delete("/books/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_book(book_id: ValidBookId):
+    pass
+```
+
+## Model Patterns
+
+### Pydantic Model Hierarchy
+
+```python
+# book_base.py - Common fields
+class BookBase(BaseModel):
+    title: str
+    author: str
+    category: str
+
+# book_create.py - For POST requests
+class BookCreate(BookBase):
+    pass
+
+# book_update.py - For PUT requests
+class BookUpdate(BookBase):
+    pass
+
+# book.py - For responses (includes ID)
+class Book(BookBase):
+    id: int
+
+    class Config:
+        from_attributes = True
+```
+
+### Error Response Model
+
+```python
+# error_response.py
 class ErrorResponse(BaseModel):
     message: str
     status_code: int
+```
+
+## Exception Usage in Routes
+
+```python
+@app.get("/books/{book_id}")
+async def get_book(book_id: ValidBookId) -> Book:
+    book = find_book_by_id(book_id)
+    if not book:
+        raise RecordNotFound(f"Book with ID {book_id} not found")
+    return book
+```
+
+## Application Setup Pattern
+
+```python
+# main.py
+from fastapi import FastAPI
+from rescue import setup_exception_handlers
+
+app = FastAPI()
+
+# Setup Rails-style exception handlers
+setup_exception_handlers(app)
+
+# Define reusable components
+ValidBookId = Annotated[int, Path(gt=0, description="Book ID must be greater than 0")]
+ERROR_RESPONSES = {404: {"model": ErrorResponse}, 422: {"model": ErrorResponse}}
 ```

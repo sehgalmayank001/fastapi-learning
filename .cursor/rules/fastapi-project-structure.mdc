@@ -9,38 +9,73 @@ description: "FastAPI project structure and organization patterns"
 
 ### Main Application Structure
 
-- **Main app file**: [main.py](mdc:Project%203/TodoApp/main.py) - FastAPI application entry point
-- **Configuration**: [config/](mdc:Project%203/TodoApp/config/) - All configuration files
-  - [database.py](mdc:Project%203/TodoApp/config/database.py) - Database connection logic
-  - [database.yml](mdc:Project%203/TodoApp/config/database.yml) - Environment-specific DB config
-  - [settings.py](mdc:Project%203/TodoApp/config/settings.py) - Centralized app settings using Pydantic
-  - [alembic.ini](mdc:Project%203/TodoApp/config/alembic.ini) - Alembic migration config
+```
+project/
+├── main.py                 # FastAPI application entry point
+├── config/                 # All configuration files
+│   ├── database.py        # Database connection logic
+│   ├── database.yml       # Environment-specific DB config
+│   ├── settings.py        # Centralized app settings using Pydantic
+│   └── alembic.ini        # Alembic migration config
+├── models/                # Individual model files (SRP)
+│   ├── __init__.py        # Package exports
+│   ├── user.py           # User model
+│   └── todo.py           # Todo model
+├── db/                    # Alembic migrations (renamed from alembic/)
+│   ├── env.py            # Alembic environment configuration
+│   └── versions/         # Migration files
+├── migrate.py            # Wrapper for Alembic commands
+└── .env                  # Environment variables
+```
 
 ### Models Organization (SRP Pattern)
 
-- **Models package**: [models/](mdc:Project%203/TodoApp/models/) - Individual model files
-  - [**init**.py](mdc:Project%203/TodoApp/models/__init__.py) - Package exports
-  - [user.py](mdc:Project%203/TodoApp/models/user.py) - User model
-  - [todo.py](mdc:Project%203/TodoApp/models/todo.py) - Todo model
 - **Pattern**: One model per file, following Single Responsibility Principle
+- **Import pattern**: Models imported through package `__init__.py`
+- **Base access**: `Base = settings.base` for centralized configuration
 
 ### Database Migrations
 
-- **Migration folder**: [db/](mdc:Project%203/TodoApp/db/) - Alembic migrations (renamed from alembic/)
-  - [env.py](mdc:Project%203/TodoApp/db/env.py) - Alembic environment configuration
-  - [versions/](mdc:Project%203/TodoApp/db/versions/) - Migration files
-- **Migration script**: [migrate.py](mdc:Project%203/TodoApp/migrate.py) - Wrapper for Alembic commands
+- **Migration folder**: `db/` instead of default `alembic/`
+- **Config location**: Moved to `config/alembic.ini` for organization
+- **Wrapper script**: `migrate.py` for simplified Alembic commands
 
 ## Configuration Patterns
 
 ### Environment Variables
 
-- Use [.env](mdc:.env) files for local development
-- Reference [env.example](mdc:Project%203/TodoApp/env.example) for required variables
-- Load once in [main.py](mdc:Project%203/TodoApp/main.py) using `load_dotenv()`
+```python
+# main.py - Load once at application startup
+from dotenv import load_dotenv
+load_dotenv()  # Centralized environment loading
+```
 
 ### Database Configuration
 
-- Rails-style [database.yml](mdc:Project%203/TodoApp/config/database.yml) with Jinja templating
-- Centralized through [settings.py](mdc:Project%203/TodoApp/config/settings.py) using Pydantic BaseSettings
-- Support for both individual components and full DATABASE_URL
+```yaml
+# database.yml - Rails-style with Jinja templating
+development:
+  database: "{{ DB_NAME | default('app_development') }}"
+  username: "{{ DB_USERNAME | default('') }}"
+  password: "{{ DB_PASSWORD | default('') }}"
+  host: "{{ DB_HOST | default('localhost') }}"
+  port: "{{ DB_PORT | default(5432) }}"
+  # URL takes precedence over individual components
+  url: "{{ DATABASE_URL | default('') }}"
+```
+
+### Centralized Settings
+
+```python
+# settings.py - Pydantic BaseSettings for type safety
+class Settings(BaseSettings):
+    @computed_field
+    @property
+    def database_url(self) -> str:
+        db_config = load_database_config()
+        return get_database_url(db_config)
+
+    @property
+    def database_engine(self):
+        return engine  # From database.py
+```
