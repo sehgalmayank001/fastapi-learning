@@ -8,7 +8,7 @@ from starlette import status
 from config import db_dependency
 from config.auth_helpers import authenticate_user, current_user
 from exceptions import RecordNotFound
-from models import Todos
+from models import Todo
 from schemas import TodoRequest, TodoResponse, ValidId, ERROR_RESPONSES
 
 router = APIRouter(prefix="/todos", tags=["todos"])
@@ -24,7 +24,7 @@ router = APIRouter(prefix="/todos", tags=["todos"])
 async def get_todos(db: db_dependency):
     """Get all todos for the current user."""
     user = current_user()
-    return db.query(Todos).filter(Todos.owner_id == user.id).all()
+    return db.query(Todo).filter(Todo.owner_id == user.id).all()
 
 
 @router.get(
@@ -37,9 +37,7 @@ async def get_todos(db: db_dependency):
 async def get_todo(db: db_dependency, todo_id: ValidId):
     """Get a specific todo by ID."""
     user = current_user()
-    todo_model = (
-        db.query(Todos).filter(Todos.id == todo_id).filter(Todos.owner_id == user.id).first()
-    )
+    todo_model = db.query(Todo).filter(Todo.id == todo_id).filter(Todo.owner_id == user.id).first()
     if todo_model is not None:
         return todo_model
     raise RecordNotFound("Todo not found")
@@ -55,7 +53,7 @@ async def get_todo(db: db_dependency, todo_id: ValidId):
 async def create_todo(db: db_dependency, todo_request: TodoRequest):
     """Create a new todo."""
     user = current_user()
-    todo_model = Todos(**todo_request.model_dump(), owner_id=user.id)
+    todo_model = Todo(**todo_request.model_dump(), owner_id=user.id)
 
     db.add(todo_model)
     db.commit()
@@ -76,9 +74,7 @@ async def update_todo(
 ):
     """Update an existing todo."""
     user = current_user()
-    todo_model = (
-        db.query(Todos).filter(Todos.id == todo_id).filter(Todos.owner_id == user.id).first()
-    )
+    todo_model = db.query(Todo).filter(Todo.id == todo_id).filter(Todo.owner_id == user.id).first()
     if todo_model is None:
         raise RecordNotFound("Todo not found")
 
@@ -100,11 +96,9 @@ async def update_todo(
 async def delete_todo(db: db_dependency, todo_id: ValidId):
     """Delete a todo."""
     user = current_user()
-    todo_model = (
-        db.query(Todos).filter(Todos.id == todo_id).filter(Todos.owner_id == user.id).first()
-    )
+    todo_model = db.query(Todo).filter(Todo.id == todo_id).filter(Todo.owner_id == user.id).first()
     if todo_model is None:
         raise RecordNotFound("Todo not found")
-    db.query(Todos).filter(Todos.id == todo_id).filter(Todos.owner_id == user.id).delete()
+    db.query(Todo).filter(Todo.id == todo_id).filter(Todo.owner_id == user.id).delete()
 
     db.commit()

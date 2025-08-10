@@ -7,7 +7,7 @@ from config import settings
 Base = settings.base
 
 
-class Users(Base):
+class User(Base):
     """User model representing application users."""
 
     __tablename__ = "users"

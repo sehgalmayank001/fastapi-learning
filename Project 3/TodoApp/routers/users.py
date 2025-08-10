@@ -7,7 +7,7 @@ from starlette import status
 from config import db_dependency
 from config.auth_helpers import authenticate_user, current_user
 from exceptions import NotAuthorized
-from models import Users
+from models import User
 from schemas import UserVerification, UserResponse, ERROR_RESPONSES
 
 router = APIRouter(prefix="/users", tags=["users"])
@@ -26,7 +26,7 @@ bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 async def get_current_user_info(db: db_dependency):
     """Get current user information."""
     user = current_user()
-    return db.query(Users).filter(Users.id == user.id).first()
+    return db.query(User).filter(User.id == user.id).first()
 
 
 @router.put(
@@ -43,7 +43,7 @@ async def change_password(
 ):
     """Change current user password."""
     user = current_user()
-    user_model = db.query(Users).filter(Users.id == user.id).first()
+    user_model = db.query(User).filter(User.id == user.id).first()
     if not bcrypt_context.verify(user_verification.password, user_model.hashed_password):
         raise NotAuthorized("Current password is incorrect")
 

@@ -6,7 +6,7 @@ from contextvars import ContextVar
 from typing import Optional
 
 from exceptions import NotAuthorized
-from models import Users
+from models import User
 from .database import SessionLocal
 
 # Context variable to store current request (for accessing user)
@@ -18,10 +18,10 @@ def set_current_request(request: Request):
     _current_request.set(request)
 
 
-def current_user() -> Optional[Users]:
+def current_user() -> Optional[User]:
     """
     Helper to get the current authenticated user.
-    Returns cached Users model object, fetching from DB only once per request.
+    Returns cached User model object, fetching from DB only once per request.
     Handles its own database dependency.
     """
     try:
@@ -43,7 +43,7 @@ def current_user() -> Optional[Users]:
         db = SessionLocal()
         try:
             # Fetch user from database and cache it
-            user = db.query(Users).filter(Users.id == user_id).first()
+            user = db.query(User).filter(User.id == user_id).first()
             request.state.user = user  # Cache for subsequent calls
             return user
         finally:

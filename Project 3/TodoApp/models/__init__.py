@@ -1,7 +1,7 @@
 """Models package for TodoApp."""
 
-from .user import Users
-from .todo import Todos
+from .user import User
+from .todo import Todo
 
 # Make models available at package level
-__all__ = ["Users", "Todos"]
+__all__ = ["User", "Todo"]

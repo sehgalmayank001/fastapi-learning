@@ -10,7 +10,7 @@ from passlib.context import CryptContext
 from starlette import status
 
 from config import db_dependency, settings
-from models import Users
+from models import User
 from schemas import CreateUserRequest, Token, ERROR_RESPONSES
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -24,7 +24,7 @@ bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 def authenticate_user(username: str, password: str, db):
     """Authenticate user with username and password."""
-    user = db.query(Users).filter(Users.username == username).first()
+    user = db.query(User).filter(User.username == username).first()
     if not user:
         return False
     if not bcrypt_context.verify(password, user.hashed_password):
@@ -49,7 +49,7 @@ def create_access_token(username: str, user_id: int, role: str, expires_delta: t
 )
 async def register_user(db: db_dependency, create_user_request: CreateUserRequest):
     """Register a new user account."""
-    create_user_model = Users(
+    create_user_model = User(
         email=create_user_request.email,
         username=create_user_request.username,
         first_name=create_user_request.first_name,

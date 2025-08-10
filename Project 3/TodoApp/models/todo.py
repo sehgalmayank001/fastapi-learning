@@ -7,7 +7,7 @@ from config import settings
 Base = settings.base
 
 
-class Todos(Base):
+class Todo(Base):
     """Todo model representing user tasks."""
 
     __tablename__ = "todos"

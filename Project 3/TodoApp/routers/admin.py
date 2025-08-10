@@ -8,7 +8,7 @@ from starlette import status
 from config import db_dependency
 from config.auth_helpers import admin_required
 from exceptions import RecordNotFound
-from models import Todos
+from models import Todo
 from schemas import TodoResponse, ValidId, ERROR_RESPONSES
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -25,7 +25,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 @admin_required
 async def get_all_todos(db: db_dependency):
     """Get all todos (admin only)."""
-    return db.query(Todos).all()
+    return db.query(Todo).all()
 
 
 @router.delete(
@@ -38,9 +38,9 @@ async def get_all_todos(db: db_dependency):
 @admin_required
 async def delete_todo(db: db_dependency, todo_id: ValidId):
     """Delete any todo by ID (admin only)."""
-    todo_model = db.query(Todos).filter(Todos.id == todo_id).first()
+    todo_model = db.query(Todo).filter(Todo.id == todo_id).first()
     if todo_model is None:
         raise RecordNotFound("Todo not found")
 
-    db.query(Todos).filter(Todos.id == todo_id).delete()
+    db.query(Todo).filter(Todo.id == todo_id).delete()
     db.commit()
