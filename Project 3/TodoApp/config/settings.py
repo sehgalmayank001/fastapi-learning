@@ -20,6 +20,23 @@ class Settings(BaseSettings):
     app_env: str = Field(default="development", alias="APP_ENV")
     debug: bool = Field(default=False, alias="DEBUG")
 
+    # Security settings
+    secret_key: str = Field(
+        default="197b2c37c391bed93fe80344fe73b806947a65e36206e05a1a23c2fa12702fe3",
+        alias="SECRET_KEY",
+    )
+    jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
+    access_token_expire_minutes: int = Field(default=20, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
+
+    # Common error messages
+    auth_failed_message: str = Field(default="Authentication Failed", alias="AUTH_FAILED_MESSAGE")
+    user_validation_failed_message: str = Field(
+        default="Could not validate user.", alias="USER_VALIDATION_FAILED_MESSAGE"
+    )
+    record_not_found_message: str = Field(
+        default="Todo not found.", alias="RECORD_NOT_FOUND_MESSAGE"
+    )
+
     @computed_field
     @property
     def database_url(self) -> str:

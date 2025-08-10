@@ -1,0 +1,42 @@
+[MASTER]
+# Add the project root to Python path for imports
+init-hook='import sys; import os; sys.path.insert(0, os.getcwd())'
+
+[MESSAGES CONTROL]
+# Disable specific warnings if needed
+disable=
+    C0111,  # missing-docstring (if you want to be selective about docstrings)
+    R0903,  # too-few-public-methods (common with Pydantic models)
+    R0801,  # duplicate-code
+    W0511,  # fixme (TODO comments)
+    C0301,  # line-too-long (if you prefer to handle with formatter)
+
+[FORMAT]
+# Maximum line length
+max-line-length=100
+
+# Expected format of line ending
+expected-line-ending-format=LF
+
+[BASIC]
+# Good variable names which should always be accepted
+good-names=i,j,k,db,id,_
+
+# Minimum line length for functions/classes that require docstrings
+docstring-min-length=10
+
+[DESIGN]
+# Maximum number of arguments for functions
+max-args=7
+
+# Maximum number of attributes for a class
+max-attributes=10
+
+# [IMPORTS] section removed - these options are for isort, not pylint
+
+[SIMILARITIES]
+# Minimum lines number of a similarity
+min-similarity-lines=4
+
+# Ignore imports when computing similarities
+ignore-imports=yes
