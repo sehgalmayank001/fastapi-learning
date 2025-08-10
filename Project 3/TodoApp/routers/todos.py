@@ -3,39 +3,30 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Path
-from pydantic import BaseModel, Field
 from starlette import status
 
 from config.db_dependencies import db_dependency
 from config.settings import settings
 from models import Todos
+from schemas import TodoRequest
 from .auth import get_current_user
 
-router = APIRouter()
+router = APIRouter(prefix="/todos", tags=["todos"])
 
 
 user_dependency = Annotated[dict, Depends(get_current_user)]
 
 
-class TodoRequest(BaseModel):
-    """Request model for todo operations."""
-
-    title: str = Field(min_length=3)
-    description: str = Field(min_length=3, max_length=100)
-    priority: int = Field(gt=0, lt=6)
-    complete: bool
-
-
 @router.get("/", status_code=status.HTTP_200_OK)
-async def read_all(user: user_dependency, db: db_dependency):
+async def get_todos(user: user_dependency, db: db_dependency):
     """Get all todos for the current user."""
     if user is None:
         raise HTTPException(status_code=401, detail=settings.auth_failed_message)
     return db.query(Todos).filter(Todos.owner_id == user.get("id")).all()
 
 
-@router.get("/todo/{todo_id}", status_code=status.HTTP_200_OK)
-async def read_todo(user: user_dependency, db: db_dependency, todo_id: int = Path(gt=0)):
+@router.get("/{todo_id}", status_code=status.HTTP_200_OK)
+async def get_todo(user: user_dependency, db: db_dependency, todo_id: int = Path(gt=0)):
     """Get a specific todo by ID."""
     if user is None:
         raise HTTPException(status_code=401, detail=settings.auth_failed_message)
@@ -48,7 +39,7 @@ async def read_todo(user: user_dependency, db: db_dependency, todo_id: int = Pat
     raise HTTPException(status_code=404, detail=settings.record_not_found_message)
 
 
-@router.post("/todo", status_code=status.HTTP_201_CREATED)
+@router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_todo(user: user_dependency, db: db_dependency, todo_request: TodoRequest):
     """Create a new todo."""
     if user is None:
@@ -59,7 +50,7 @@ async def create_todo(user: user_dependency, db: db_dependency, todo_request: To
     db.commit()
 
 
-@router.put("/todo/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.put("/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def update_todo(
     user: user_dependency,
     db: db_dependency,
@@ -85,7 +76,7 @@ async def update_todo(
     db.commit()
 
 
-@router.delete("/todo/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{todo_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_todo(user: user_dependency, db: db_dependency, todo_id: int = Path(gt=0)):
     """Delete a todo."""
     if user is None:

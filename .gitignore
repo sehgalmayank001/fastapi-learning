@@ -5,6 +5,7 @@
 /.idea/inspectionProfiles/profiles_settings.xml
 /.idea/vcs.xml
 
+fastapi/*
 __pycache__/
 .idea
 env
