@@ -1,21 +1,17 @@
 """Todo CRUD routes."""
 
-from typing import Annotated, List
+from typing import List
 
-from fastapi import APIRouter, Depends, Path
+from fastapi import APIRouter
 from starlette import status
 
 from config import db_dependency
-from exceptions import NotAuthorized, RecordNotFound
+from config.auth_helpers import authenticate_user, current_user
+from exceptions import RecordNotFound
 from models import Todos
 from schemas import TodoRequest, TodoResponse, ValidId, ERROR_RESPONSES
-from .auth import get_current_user
 
 router = APIRouter(prefix="/todos", tags=["todos"])
-
-# Using shared components from config.api_docs
-
-user_dependency = Annotated[dict, Depends(get_current_user)]
 
 
 @router.get(
@@ -24,11 +20,11 @@ user_dependency = Annotated[dict, Depends(get_current_user)]
     status_code=status.HTTP_200_OK,
     responses=ERROR_RESPONSES,
 )
-async def get_todos(user: user_dependency, db: db_dependency):
+@authenticate_user
+async def get_todos(db: db_dependency):
     """Get all todos for the current user."""
-    if user is None:
-        raise NotAuthorized()
-    return db.query(Todos).filter(Todos.owner_id == user.get("id")).all()
+    user = current_user()
+    return db.query(Todos).filter(Todos.owner_id == user.id).all()
 
 
 @router.get(
@@ -37,13 +33,12 @@ async def get_todos(user: user_dependency, db: db_dependency):
     status_code=status.HTTP_200_OK,
     responses=ERROR_RESPONSES,
 )
-async def get_todo(user: user_dependency, db: db_dependency, todo_id: ValidId):
+@authenticate_user
+async def get_todo(db: db_dependency, todo_id: ValidId):
     """Get a specific todo by ID."""
-    if user is None:
-        raise NotAuthorized()
-
+    user = current_user()
     todo_model = (
-        db.query(Todos).filter(Todos.id == todo_id).filter(Todos.owner_id == user.get("id")).first()
+        db.query(Todos).filter(Todos.id == todo_id).filter(Todos.owner_id == user.id).first()
     )
     if todo_model is not None:
         return todo_model
@@ -56,11 +51,11 @@ async def get_todo(user: user_dependency, db: db_dependency, todo_id: ValidId):
     status_code=status.HTTP_201_CREATED,
     responses=ERROR_RESPONSES,
 )
-async def create_todo(user: user_dependency, db: db_dependency, todo_request: TodoRequest):
+@authenticate_user
+async def create_todo(db: db_dependency, todo_request: TodoRequest):
     """Create a new todo."""
-    if user is None:
-        raise NotAuthorized()
-    todo_model = Todos(**todo_request.model_dump(), owner_id=user.get("id"))
+    user = current_user()
+    todo_model = Todos(**todo_request.model_dump(), owner_id=user.id)
 
     db.add(todo_model)
     db.commit()
@@ -73,18 +68,16 @@ async def create_todo(user: user_dependency, db: db_dependency, todo_request: To
     status_code=status.HTTP_204_NO_CONTENT,
     responses=ERROR_RESPONSES,
 )
+@authenticate_user
 async def update_todo(
-    user: user_dependency,
     db: db_dependency,
     todo_request: TodoRequest,
     todo_id: ValidId,
 ):
     """Update an existing todo."""
-    if user is None:
-        raise NotAuthorized()
-
+    user = current_user()
     todo_model = (
-        db.query(Todos).filter(Todos.id == todo_id).filter(Todos.owner_id == user.get("id")).first()
+        db.query(Todos).filter(Todos.id == todo_id).filter(Todos.owner_id == user.id).first()
     )
     if todo_model is None:
         raise RecordNotFound("Todo not found")
@@ -103,16 +96,15 @@ async def update_todo(
     status_code=status.HTTP_204_NO_CONTENT,
     responses=ERROR_RESPONSES,
 )
-async def delete_todo(user: user_dependency, db: db_dependency, todo_id: ValidId):
+@authenticate_user
+async def delete_todo(db: db_dependency, todo_id: ValidId):
     """Delete a todo."""
-    if user is None:
-        raise NotAuthorized()
-
+    user = current_user()
     todo_model = (
-        db.query(Todos).filter(Todos.id == todo_id).filter(Todos.owner_id == user.get("id")).first()
+        db.query(Todos).filter(Todos.id == todo_id).filter(Todos.owner_id == user.id).first()
     )
     if todo_model is None:
         raise RecordNotFound("Todo not found")
-    db.query(Todos).filter(Todos.id == todo_id).filter(Todos.owner_id == user.get("id")).delete()
+    db.query(Todos).filter(Todos.id == todo_id).filter(Todos.owner_id == user.id).delete()
 
     db.commit()

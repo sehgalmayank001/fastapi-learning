@@ -1,21 +1,16 @@
 """User account routes."""
 
-from typing import Annotated
-
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 from passlib.context import CryptContext
 from starlette import status
 
 from config import db_dependency
+from config.auth_helpers import authenticate_user, current_user
 from exceptions import NotAuthorized
 from models import Users
 from schemas import UserVerification, UserResponse, ERROR_RESPONSES
-from .auth import get_current_user
 
 router = APIRouter(prefix="/users", tags=["users"])
-
-
-user_dependency = Annotated[dict, Depends(get_current_user)]
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
@@ -27,11 +22,11 @@ bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
     summary="Get current user profile",
     description="Retrieve the current authenticated user's profile information.",
 )
-async def get_current_user_info(user: user_dependency, db: db_dependency):
+@authenticate_user
+async def get_current_user_info(db: db_dependency):
     """Get current user information."""
-    if user is None:
-        raise NotAuthorized()
-    return db.query(Users).filter(Users.id == user.get("id")).first()
+    user = current_user()
+    return db.query(Users).filter(Users.id == user.id).first()
 
 
 @router.put(
@@ -41,14 +36,14 @@ async def get_current_user_info(user: user_dependency, db: db_dependency):
     summary="Change user password",
     description="Update the current user's password. Requires current password verification.",
 )
+@authenticate_user
 async def change_password(
-    user: user_dependency, db: db_dependency, user_verification: UserVerification
+    db: db_dependency,
+    user_verification: UserVerification,
 ):
     """Change current user password."""
-    if user is None:
-        raise NotAuthorized()
-
-    user_model = db.query(Users).filter(Users.id == user.get("id")).first()
+    user = current_user()
+    user_model = db.query(Users).filter(Users.id == user.id).first()
     if not bcrypt_context.verify(user_verification.password, user_model.hashed_password):
         raise NotAuthorized("Current password is incorrect")
 
