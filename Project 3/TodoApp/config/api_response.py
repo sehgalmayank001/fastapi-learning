@@ -11,7 +11,7 @@ def json_response(
     status: int = 200,
     options: Dict = None,
 ):
-    """Rails-style json_response helper."""
+    """json_response helper."""
     if options is None:
         options = {}
 

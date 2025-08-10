@@ -1,4 +1,4 @@
-"""Rails-style rescue_from handlers."""
+"""Rescue_from handlers."""
 
 import traceback
 
@@ -16,7 +16,7 @@ from starlette import status
 
 
 def error_formatting(msg: str) -> str:
-    """Format error messages (equivalent to Rails error_formatting)."""
+    """Format error messages."""
     return msg.replace("Blueprint", "").strip()
 
 
