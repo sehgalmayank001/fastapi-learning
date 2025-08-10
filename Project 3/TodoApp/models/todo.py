@@ -2,7 +2,7 @@
 
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
 
-from config.settings import settings
+from config import settings
 
 Base = settings.base
 

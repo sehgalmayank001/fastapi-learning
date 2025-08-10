@@ -9,10 +9,9 @@ from jose import jwt, JWTError
 from passlib.context import CryptContext
 from starlette import status
 
-from config.db_dependencies import db_dependency
-from config.settings import settings
+from config import db_dependency, settings
 from models import Users
-from schemas import CreateUserRequest, Token
+from schemas import CreateUserRequest, Token, ERROR_RESPONSES
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -65,7 +64,13 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_bearer)]):
         ) from exc
 
 
-@router.post("/register", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/register",
+    status_code=status.HTTP_201_CREATED,
+    responses=ERROR_RESPONSES,
+    summary="Register a new user",
+    description="Create a new user account with username, email, and password.",
+)
 async def register_user(db: db_dependency, create_user_request: CreateUserRequest):
     """Register a new user account."""
     create_user_model = Users(
@@ -82,7 +87,14 @@ async def register_user(db: db_dependency, create_user_request: CreateUserReques
     db.commit()
 
 
-@router.post("/login", response_model=Token)
+@router.post(
+    "/login",
+    response_model=Token,
+    status_code=status.HTTP_200_OK,
+    responses=ERROR_RESPONSES,
+    summary="User login",
+    description="Authenticate user and return JWT access token.",
+)
 async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: db_dependency):
     """Login and get access token."""
     user = authenticate_user(form_data.username, form_data.password, db)

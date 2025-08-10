@@ -1,16 +1,16 @@
 """FastAPI TodoApp main application entry point."""
 
+from config import settings, setup_exception_handlers
+from routers import auth, todos, admin, users
+from fastapi import FastAPI
 from dotenv import load_dotenv
 
 load_dotenv()
 
-from fastapi import FastAPI
-
-from config import settings
-from routers import auth, todos, admin, users
-
-
 app = FastAPI()
+
+# Setup exception handlers
+setup_exception_handlers(app)
 
 # Tables are managed by Alembic migrations
 # settings.base.metadata.create_all(bind=settings.database_engine)
